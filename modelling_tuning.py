@@ -7,7 +7,6 @@ import mlflow
 import mlflow.sklearn
 import pandas as pd
 import matplotlib.pyplot as plt
-
 from sklearn.svm import SVC
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.model_selection import StratifiedKFold, cross_val_score
@@ -23,21 +22,31 @@ from sklearn.metrics import (
 )
 
 
-def init_dagshub(
+def init_tracking(
     repo_owner: str,
     repo_name: str,
     experiment_name: str,
     token: str | None = None,
     autolog: bool = False,
 ):
-    if token:
-        dagshub.auth.add_app_token(token)
-
-    dagshub.init(
-        repo_owner=repo_owner,
-        repo_name=repo_name,
-        mlflow=True,
+    use_dagshub = bool(os.getenv("MLFLOW_TRACKING_URI")) and bool(
+        os.getenv("MLFLOW_TRACKING_USERNAME")
     )
+
+    if use_dagshub:
+        if token:
+            dagshub.auth.add_app_token(token)
+
+        dagshub.init(
+            repo_owner=repo_owner,
+            repo_name=repo_name,
+            mlflow=True,
+        )
+    else:
+        os.environ.pop("MLFLOW_TRACKING_URI", None)
+
+    if not os.getenv("MLFLOW_RUN_ID"):
+        os.environ.pop("MLFLOW_EXPERIMENT_ID", None)
 
     mlflow.set_experiment(experiment_name)
     mlflow.sklearn.autolog(log_models=autolog)
@@ -277,7 +286,7 @@ def run_training(
     optuna_history_path: str,
     study_summary_path: str,
 ):
-    init_dagshub(
+    init_tracking(
         repo_owner=dagshub_repo_owner,
         repo_name=dagshub_repo_name,
         experiment_name=experiment_name,
@@ -346,7 +355,7 @@ def run_training(
             y_test=y_test,
         )
 
-        report = save_classification_report(
+        save_classification_report(
             y_test=y_test,
             y_pred=y_pred,
             output_path=classification_report_path,
@@ -419,40 +428,37 @@ def run_training(
         print("Manual logging MLflow ke DagsHub selesai.")
 
 
+RANDOM_STATE = 42
+TARGET_COLUMN = "num"
+
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.path.join(CURRENT_DIR, "heartdisease_preprocessing")
+X_TRAIN_PATH = os.path.join(DATA_DIR, "X_train.csv")
+X_TEST_PATH = os.path.join(DATA_DIR, "X_test.csv")
+Y_TRAIN_PATH = os.path.join(DATA_DIR, "y_train.csv")
+Y_TEST_PATH = os.path.join(DATA_DIR, "y_test.csv")
+
+EXPERIMENT_NAME = os.getenv("EXPERIMENT_NAME", "heart-disease-svc-optuna")
+DAGSHUB_REPO_OWNER = os.getenv("DAGSHUB_REPO_OWNER", "akhsaul")
+DAGSHUB_REPO_NAME = os.getenv("DAGSHUB_REPO_NAME", "dicoding-MSML")
+DAGSHUB_TOKEN = os.getenv("DAGSHUB_USER_TOKEN", None)
+
+OPTUNA_DB_PATH = "optuna_studies.db"
+OPTUNA_STORAGE = f"sqlite:///{OPTUNA_DB_PATH}"
+OPTUNA_STUDY_NAME = "heart_disease_optuna_study"
+N_TRIALS = int(os.getenv("MLFLOW_N_TRIALS", "50"))
+
+ARTIFACT_DIR = "artifacts"
+MODEL_PATH = os.path.join(ARTIFACT_DIR, "heart_disease_svc_optuna.joblib")
+METRICS_PATH = os.path.join(ARTIFACT_DIR, "metrics.json")
+BEST_PARAMS_PATH = os.path.join(ARTIFACT_DIR, "best_params.json")
+CLASSIFICATION_REPORT_PATH = os.path.join(ARTIFACT_DIR, "classification_report.json")
+CONFUSION_MATRIX_PATH = os.path.join(ARTIFACT_DIR, "confusion_matrix.png")
+OPTUNA_HISTORY_PATH = os.path.join(ARTIFACT_DIR, "optuna_history.png")
+STUDY_SUMMARY_PATH = os.path.join(ARTIFACT_DIR, "study_summary.json")
+
+
 if __name__ == "__main__":
-    RANDOM_STATE = 42
-
-    TARGET_COLUMN = "num"
-    DATA_DIR = "./"
-
-    X_TRAIN_PATH = os.path.join(DATA_DIR, "X_train.csv")
-    X_TEST_PATH = os.path.join(DATA_DIR, "X_test.csv")
-    Y_TRAIN_PATH = os.path.join(DATA_DIR, "y_train.csv")
-    Y_TEST_PATH = os.path.join(DATA_DIR, "y_test.csv")
-
-    EXPERIMENT_NAME = os.getenv("EXPERIMENT_NAME", "heart-disease-svc-optuna")
-
-    DAGSHUB_REPO_OWNER = os.getenv("DAGSHUB_REPO_OWNER", "akhsaul")
-    DAGSHUB_REPO_NAME = os.getenv("DAGSHUB_REPO_NAME", "dicoding-MSML")
-    DAGSHUB_TOKEN = os.getenv("DAGSHUB_USER_TOKEN", None)
-
-    OPTUNA_DB_PATH = "optuna_studies.db"
-    OPTUNA_STORAGE = f"sqlite:///{OPTUNA_DB_PATH}"
-    OPTUNA_STUDY_NAME = "heart_disease_optuna_study"
-
-    N_TRIALS = int(os.getenv("MLFLOW_N_TRIALS", "50"))
-
-    ARTIFACT_DIR = "artifacts"
-    MODEL_PATH = os.path.join(ARTIFACT_DIR, "heart_disease_svc_optuna.joblib")
-    METRICS_PATH = os.path.join(ARTIFACT_DIR, "metrics.json")
-    BEST_PARAMS_PATH = os.path.join(ARTIFACT_DIR, "best_params.json")
-    CLASSIFICATION_REPORT_PATH = os.path.join(
-        ARTIFACT_DIR, "classification_report.json"
-    )
-    CONFUSION_MATRIX_PATH = os.path.join(ARTIFACT_DIR, "confusion_matrix.png")
-    OPTUNA_HISTORY_PATH = os.path.join(ARTIFACT_DIR, "optuna_history.png")
-    STUDY_SUMMARY_PATH = os.path.join(ARTIFACT_DIR, "study_summary.json")
-
     run_training(
         random_state=RANDOM_STATE,
         target_column=TARGET_COLUMN,

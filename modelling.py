@@ -4,6 +4,7 @@ import dagshub
 import mlflow
 import mlflow.sklearn
 import pandas as pd
+import matplotlib.pyplot as plt
 from sklearn.svm import SVC
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.metrics import (
@@ -14,24 +15,35 @@ from sklearn.metrics import (
     precision_score,
     classification_report,
     confusion_matrix,
+    ConfusionMatrixDisplay,
 )
 
 
-def init_dagshub(
+def init_tracking(
     repo_owner: str,
     repo_name: str,
     experiment_name: str,
     token: str | None = None,
     autolog: bool = False,
 ):
-    if token:
-        dagshub.auth.add_app_token(token)
-
-    dagshub.init(
-        repo_owner=repo_owner,
-        repo_name=repo_name,
-        mlflow=True,
+    use_dagshub = bool(os.getenv("MLFLOW_TRACKING_URI")) and bool(
+        os.getenv("MLFLOW_TRACKING_USERNAME")
     )
+
+    if use_dagshub:
+        if token:
+            dagshub.auth.add_app_token(token)
+
+        dagshub.init(
+            repo_owner=repo_owner,
+            repo_name=repo_name,
+            mlflow=True,
+        )
+    else:
+        os.environ.pop("MLFLOW_TRACKING_URI", None)
+
+    if not os.getenv("MLFLOW_RUN_ID"):
+        os.environ.pop("MLFLOW_EXPERIMENT_ID", None)
 
     mlflow.set_experiment(experiment_name)
     mlflow.sklearn.autolog(log_models=autolog)
@@ -60,45 +72,69 @@ def evaluate_model(model, X_test, y_test):
 
     y_pred = model.predict(X_test)
     y_proba = model.predict_proba(X_test)[:, 1]
-    roc_auc = roc_auc_score(y_true=y_test, y_score=y_proba)
 
     metrics = {
         "accuracy": accuracy_score(y_test, y_pred),
         "f1_score": f1_score(y_test, y_pred),
         "recall": recall_score(y_test, y_pred),
         "precision": precision_score(y_test, y_pred),
-        "roc_auc": roc_auc,
+        "roc_auc": roc_auc_score(
+            y_true=y_test,
+            y_score=y_proba,
+        ),
     }
 
     return metrics, y_pred
 
 
+def save_confusion_matrix(
+    y_test,
+    y_pred,
+    output_path: str,
+):
+    fig, ax = plt.subplots(figsize=(6, 5))
+
+    ConfusionMatrixDisplay.from_predictions(
+        y_test,
+        y_pred,
+        ax=ax,
+    )
+
+    ax.set_title("Confusion Matrix - SVC")
+    plt.tight_layout()
+    plt.savefig(output_path)
+    plt.close(fig)
+
+
+RANDOM_STATE = 42
+TARGET_COLUMN = "num"
+
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.path.join(CURRENT_DIR, "heartdisease_preprocessing")
+
+X_TRAIN_PATH = os.path.join(DATA_DIR, "X_train.csv")
+X_TEST_PATH = os.path.join(DATA_DIR, "X_test.csv")
+Y_TRAIN_PATH = os.path.join(DATA_DIR, "y_train.csv")
+Y_TEST_PATH = os.path.join(DATA_DIR, "y_test.csv")
+
+EXPERIMENT_NAME = os.getenv("EXPERIMENT_NAME", "heart-disease-svc")
+
+DAGSHUB_REPO_OWNER = os.getenv("DAGSHUB_REPO_OWNER", "akhsaul")
+DAGSHUB_REPO_NAME = os.getenv("DAGSHUB_REPO_NAME", "dicoding-MSML")
+DAGSHUB_TOKEN = os.getenv("DAGSHUB_USER_TOKEN", None)
+
+SVC_BEST_PARAMS = {
+    "kernel": "rbf",
+    "C": 0.6297705300545552,
+    "gamma": "scale",
+    "class_weight": None,
+    "random_state": RANDOM_STATE,
+}
+
+
 def main():
-    RANDOM_STATE = 42
 
-    TARGET_COLUMN = "num"
-    DATA_DIR = "./"
-
-    X_TRAIN_PATH = os.path.join(DATA_DIR, "X_train.csv")
-    X_TEST_PATH = os.path.join(DATA_DIR, "X_test.csv")
-    Y_TRAIN_PATH = os.path.join(DATA_DIR, "y_train.csv")
-    Y_TEST_PATH = os.path.join(DATA_DIR, "y_test.csv")
-
-    EXPERIMENT_NAME = os.getenv("EXPERIMENT_NAME", "heart-disease-svc")
-
-    DAGSHUB_REPO_OWNER = os.getenv("DAGSHUB_REPO_OWNER", "akhsaul")
-    DAGSHUB_REPO_NAME = os.getenv("DAGSHUB_REPO_NAME", "dicoding-MSML")
-    DAGSHUB_TOKEN = os.getenv("DAGSHUB_USER_TOKEN", None)
-
-    SVC_BEST_PARAMS = {
-        "kernel": "rbf",
-        "C": 3.1577304105435946,
-        "gamma": "auto",
-        "class_weight": None,
-        "random_state": RANDOM_STATE,
-    }
-
-    init_dagshub(
+    init_tracking(
         repo_owner=DAGSHUB_REPO_OWNER,
         repo_name=DAGSHUB_REPO_NAME,
         experiment_name=EXPERIMENT_NAME,
@@ -127,9 +163,16 @@ def main():
         method="sigmoid",
         cv=5,
         ensemble=False,
+        n_jobs=-1,
     )
 
-    with mlflow.start_run(run_name="heart_disease_svc"):
+    parent_run_id = os.getenv("MLFLOW_RUN_ID")
+    if parent_run_id:
+        run_context = mlflow.start_run(run_id=parent_run_id)
+    else:
+        run_context = mlflow.start_run(run_name="heart_disease_svc")
+
+    with run_context as run:
         model.fit(X_train, y_train)
 
         metrics, y_pred = evaluate_model(model, X_test, y_test)
@@ -143,12 +186,21 @@ def main():
 
         print("\nConfusion Matrix:")
         print(confusion_matrix(y_test, y_pred))
+        os.makedirs("artifacts", exist_ok=True)
+        save_confusion_matrix(
+            y_test, y_pred, output_path="artifacts/confusion_matrix.png"
+        )
 
-        os.makedirs("models", exist_ok=True)
-        model_path = "models/heart_disease_svc.joblib"
+        os.makedirs("artifacts/model", exist_ok=True)
+        model_path = "artifacts/model/heart_disease_svc.joblib"
         joblib.dump(model, model_path)
-
         print(f"\nModel saved locally to: {model_path}")
+
+        run_id = run.info.run_id
+        with open("run_id.txt", "w") as f:
+            f.write(run_id)
+        print(f"MLflow run_id: {run_id}")
+
         print("Training dan logging MLflow ke DagsHub selesai.")
 
 

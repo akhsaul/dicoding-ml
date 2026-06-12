@@ -11,8 +11,8 @@ pandas = "==2.3.3"
 dagshub = "==0.7.0"
 matplotlib = "==3.10.9"
 joblib = "==1.5.3"
-optuna = "*"
-optuna-integration = {extras = ["mlflow"], version = "*"}
+optuna = "==4.9.0"
+optuna-integration = {extras = ["mlflow"], version = "==4.9.0"}
 
 [dev-packages]
 

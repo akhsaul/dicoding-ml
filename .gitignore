@@ -216,3 +216,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Result from modelling.py and modelling_tuning.py
+artifacts/
+mlruns/
+run_id.txt

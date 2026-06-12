@@ -4,7 +4,6 @@ import dagshub
 import mlflow
 import mlflow.sklearn
 import pandas as pd
-
 from sklearn.svm import SVC
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.metrics import (
@@ -73,6 +72,7 @@ def evaluate_model(model, X_test, y_test):
 
     return metrics, y_pred
 
+
 def main():
     RANDOM_STATE = 42
 
@@ -95,6 +95,7 @@ def main():
         "C": 3.1577304105435946,
         "gamma": "auto",
         "class_weight": None,
+        "random_state": RANDOM_STATE,
     }
 
     init_dagshub(

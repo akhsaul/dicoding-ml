@@ -1,0 +1,10 @@
+-i https://pypi.org/simple
+mlflow==2.19.0
+scikit-learn==1.9.0
+numpy==2.4.6
+pandas==2.3.3
+dagshub==0.7.0
+matplotlib==3.10.9
+joblib==1.5.3
+optuna
+optuna-integration[mlflow]

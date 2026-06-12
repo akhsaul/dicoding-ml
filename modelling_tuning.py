@@ -222,10 +222,7 @@ def save_optuna_history_plot(
     study,
     output_path: str,
 ):
-    finished_trials = [
-        trial for trial in study.trials
-        if trial.value is not None
-    ]
+    finished_trials = [trial for trial in study.trials if trial.value is not None]
 
     trial_numbers = [trial.number for trial in finished_trials]
     trial_values = [trial.value for trial in finished_trials]
@@ -449,7 +446,9 @@ if __name__ == "__main__":
     MODEL_PATH = os.path.join(ARTIFACT_DIR, "heart_disease_svc_optuna.joblib")
     METRICS_PATH = os.path.join(ARTIFACT_DIR, "metrics.json")
     BEST_PARAMS_PATH = os.path.join(ARTIFACT_DIR, "best_params.json")
-    CLASSIFICATION_REPORT_PATH = os.path.join(ARTIFACT_DIR, "classification_report.json")
+    CLASSIFICATION_REPORT_PATH = os.path.join(
+        ARTIFACT_DIR, "classification_report.json"
+    )
     CONFUSION_MATRIX_PATH = os.path.join(ARTIFACT_DIR, "confusion_matrix.png")
     OPTUNA_HISTORY_PATH = os.path.join(ARTIFACT_DIR, "optuna_history.png")
     STUDY_SUMMARY_PATH = os.path.join(ARTIFACT_DIR, "study_summary.json")

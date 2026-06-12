@@ -184,7 +184,7 @@ def evaluate_model(model, X_test, y_test):
         ),
     }
 
-    return metrics, y_pred, y_proba
+    return metrics, y_pred
 
 
 def save_json(data, output_path: str):
@@ -349,7 +349,7 @@ def run_training(
 
         best_model.fit(X_train, y_train)
 
-        metrics, y_pred, y_proba = evaluate_model(
+        metrics, y_pred = evaluate_model(
             model=best_model,
             X_test=X_test,
             y_test=y_test,

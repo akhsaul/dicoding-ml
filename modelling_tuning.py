@@ -448,7 +448,7 @@ OPTUNA_STORAGE = f"sqlite:///{OPTUNA_DB_PATH}"
 OPTUNA_STUDY_NAME = "heart_disease_optuna_study"
 N_TRIALS = int(os.getenv("MLFLOW_N_TRIALS", "50"))
 
-ARTIFACT_DIR = "artifacts"
+ARTIFACT_DIR = os.path.join(CURRENT_DIR, "artifacts")
 MODEL_PATH = os.path.join(ARTIFACT_DIR, "heart_disease_svc_optuna.joblib")
 METRICS_PATH = os.path.join(ARTIFACT_DIR, "metrics.json")
 BEST_PARAMS_PATH = os.path.join(ARTIFACT_DIR, "best_params.json")

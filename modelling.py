@@ -201,7 +201,7 @@ def main():
             f.write(run_id)
         print(f"MLflow run_id: {run_id}")
 
-        print("Training dan logging MLflow ke DagsHub selesai.")
+        print("Training dan logging MLflow selesai.")
 
 
 if __name__ == "__main__":

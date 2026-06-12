@@ -2,10 +2,9 @@ import argparse
 import json
 import sys
 import time
+import requests
 from pathlib import Path
 from typing import Any, Dict, List
-
-import requests
 
 
 def expand_dataframe_split(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -90,7 +89,9 @@ def load_batch_payloads(path: str) -> List[Dict[str, Any]]:
                 payloads.extend(expand_payload(item))
 
     else:
-        raise ValueError("Format input harus dict, list[dict], atau {'payloads': [...]}.")
+        raise ValueError(
+            "Format input harus dict, list[dict], atau {'payloads': [...]}."
+        )
 
     if not payloads:
         raise ValueError("Tidak ada payload valid yang bisa dikirim.")
@@ -178,7 +179,9 @@ def build_bulk_payload(batch_payloads: List[Dict[str, Any]]) -> Dict[str, Any]:
     )
 
 
-def send_payload(url: str, payload: Dict[str, Any], timeout: float) -> requests.Response:
+def send_payload(
+    url: str, payload: Dict[str, Any], timeout: float
+) -> requests.Response:
     headers = {
         "Content-Type": "application/json",
         "Accept": "application/json",

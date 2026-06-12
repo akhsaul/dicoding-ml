@@ -1,11 +1,10 @@
 import os
 import time
 import threading
-from typing import Any
-from urllib.parse import urlsplit
-
 import psutil
 import requests
+from typing import Any
+from urllib.parse import urlsplit
 from flask import Flask, Response, jsonify, request
 from prometheus_client import (
     CONTENT_TYPE_LATEST,
@@ -21,11 +20,7 @@ EXPORTER_PORT = int(os.getenv("EXPORTER_PORT", os.getenv("METRICS_PORT", "8000")
 TIMEOUT_SECONDS = float(os.getenv("TIMEOUT_SECONDS", "15"))
 MAX_REQUEST_BYTES = int(os.getenv("MAX_REQUEST_BYTES", str(500 * 1024)))
 
-# Health check model serving.
-# MODEL_DOWN_POLL_INTERVAL tetap didukung supaya env lama Anda tidak rusak.
-MODEL_STATUS_POLL_INTERVAL = float(
-    os.getenv("MODEL_STATUS_POLL_INTERVAL", os.getenv("MODEL_DOWN_POLL_INTERVAL", "5"))
-)
+MODEL_STATUS_POLL_INTERVAL = float(os.getenv("MODEL_STATUS_POLL_INTERVAL", "5"))
 MODEL_HEALTH_ENDPOINT = os.getenv("MODEL_HEALTH_ENDPOINT", "/ping")
 MODEL_HEALTH_TIMEOUT_SECONDS = float(os.getenv("MODEL_HEALTH_TIMEOUT_SECONDS", "3"))
 
@@ -197,9 +192,7 @@ def record_body_size(size_bytes: int) -> None:
     REQUEST_BODY_SIZE_OBSERVED_TOTAL.inc()
 
     REQUEST_SIZE_BYTES.observe(size_bytes)
-    REQUEST_SIZE_BUCKET_TOTAL.labels(
-        size_bucket=get_size_bucket(size_bytes)
-    ).inc()
+    REQUEST_SIZE_BUCKET_TOTAL.labels(size_bucket=get_size_bucket(size_bytes)).inc()
 
     with _body_size_lock:
         if _body_size_min is None or size_bytes < _body_size_min:
@@ -452,11 +445,15 @@ def main() -> None:
     threading.Thread(target=update_system_metrics, daemon=True).start()
     threading.Thread(target=monitor_model_serving_status, daemon=True).start()
 
-    print(f"Exporter Flask berjalan di http://{EXPORTER_HOST}:{EXPORTER_PORT}", flush=True)
+    print(
+        f"Exporter Flask berjalan di http://{EXPORTER_HOST}:{EXPORTER_PORT}", flush=True
+    )
     print(f"Target MLflow model: {MODEL_URL}", flush=True)
     print(f"Model base URL: {get_model_base_url()}", flush=True)
     print(f"Model health URL: {get_model_health_url()}", flush=True)
-    print(f"Model status poll interval: {MODEL_STATUS_POLL_INTERVAL} seconds", flush=True)
+    print(
+        f"Model status poll interval: {MODEL_STATUS_POLL_INTERVAL} seconds", flush=True
+    )
     print(f"Model health timeout: {MODEL_HEALTH_TIMEOUT_SECONDS} seconds", flush=True)
     print(f"Max request size: {MAX_REQUEST_BYTES} bytes", flush=True)
 

@@ -1,0 +1,21 @@
+FROM python:3.12.7-slim
+
+WORKDIR /app
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+ARG PIP_CACHE=/root/.cache/pip
+ENV PIP_CACHE_DIR=${PIP_CACHE}
+
+COPY requirements.txt .
+
+RUN --mount=type=cache,target=${PIP_CACHE} \
+    python -m pip install --upgrade pip && \
+    python -m pip install --cache-dir ${PIP_CACHE} -r requirements.txt
+
+COPY 3.prometheus_exporter.py .
+
+EXPOSE 8000
+
+CMD ["python", "3.prometheus_exporter.py"]

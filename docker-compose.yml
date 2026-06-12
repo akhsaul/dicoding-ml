@@ -1,0 +1,61 @@
+services:
+  mlflow-model:
+    image: docker.io/akhsaul/heart-disease-svc:latest
+    container_name: msml-mlflow-model
+    ports:
+      - "5001:8080"
+    environment:
+      - GUNICORN_CMD_ARGS=--timeout 120
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v3
+    container_name: msml-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./2.prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:12.4
+    container_name: msml-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_SMTP_ENABLED: true
+      GF_SMTP_HOST: smtp.gmail.com:587
+      GF_SMTP_USER: ${GRAFANA_SMTP_USER}
+      GF_SMTP_PASSWORD: ${GRAFANA_SMTP_PASSWORD}
+      GF_SMTP_FROM_ADDRESS: ${GRAFANA_SMTP_USER}
+      GF_SMTP_FROM_NAME: Grafana MSML Alerts
+      GF_SMTP_SKIP_VERIFY: false
+      MY_EMAIL: ${MY_EMAIL}
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+  prometheus-exporter:
+    image: localhost/akhsaul/msml-prometheus-exporter:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.exporter
+      args:
+        PIP_CACHE: ${PIP_CACHE:-/root/.cache/pip}
+    container_name: msml-prometheus-exporter
+    environment:
+      MODEL_URL: http://mlflow-model:8080/invocations
+      EXPORTER_HOST: 0.0.0.0
+      EXPORTER_PORT: 8000
+      TIMEOUT_SECONDS: 15
+      MAX_REQUEST_BYTES: 512000
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mlflow-model
+    restart: unless-stopped

@@ -1,0 +1,11 @@
+apiVersion: 1
+contactPoints:
+    - orgId: 1
+      name: email-ikhsan-maulana
+      receivers:
+        - uid: dfotmjn4gto8wd
+          type: email
+          settings:
+            addresses: $MY_EMAIL
+            singleEmail: false
+          disableResolveMessage: false

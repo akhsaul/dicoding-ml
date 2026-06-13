@@ -18,6 +18,8 @@ jobs:
       - name: Compress Images
         id: calibre
         uses: calibreapp/image-actions@main
+        with:
+          compressOnly: true
 
       - name: Create New Pull Request If Needed
         if: steps.calibre.outputs.markdown != ''

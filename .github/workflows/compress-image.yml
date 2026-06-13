@@ -5,6 +5,8 @@ on:
     branches:
       - monitoring-dan-logging
   workflow_dispatch:
+  schedule:
+    - cron: 57 2 * * *
 
 permissions:
   contents: write
@@ -22,11 +24,16 @@ jobs:
         uses: calibreapp/image-actions@main
         with:
           compressOnly: true
+          jpegQuality: '85'
+          jpegProgressive: false
+          pngQuality: '90'
+          webpQuality: '85'
+          avifQuality: '75'
 
       - name: Create Github Summary
         if: steps.calibre.outputs.markdown != ''
         run: |
-          echo ${{ steps.calibre.outputs.markdown }} >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.calibre.outputs.markdown }}" >> $GITHUB_STEP_SUMMARY
 
       - name: Push to github
         run: |

@@ -1,7 +1,7 @@
 # Open a Pull Request if any images can be compressed.
 name: Compress Images
 on:
-  push:
+  pull_request:
     branches:
       - monitoring-dan-logging
   workflow_dispatch:

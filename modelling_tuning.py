@@ -425,7 +425,7 @@ def run_training(
         print(confusion_matrix(y_test, y_pred))
 
         print(f"\nModel lokal disimpan di: {model_path}")
-        print("Manual logging MLflow ke DagsHub selesai.")
+        print("Manual logging MLflow selesai.")
 
 
 RANDOM_STATE = 42

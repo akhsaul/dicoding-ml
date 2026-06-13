@@ -6,7 +6,7 @@ on:
       - monitoring-dan-logging
   workflow_dispatch:
   schedule:
-    - cron: 53 9 * * *
+    - cron: 55 9 * * *
 jobs:
   build:
     name: calibreapp/image-actions

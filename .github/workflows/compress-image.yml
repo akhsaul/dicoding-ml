@@ -7,10 +7,14 @@ on:
   workflow_dispatch:
   schedule:
     - cron: 57 2 * * *
+
 jobs:
   build:
     name: calibreapp/image-actions
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v6

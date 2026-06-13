@@ -5,16 +5,14 @@ on:
     branches:
       - monitoring-dan-logging
   workflow_dispatch:
-  schedule:
-    - cron: 57 2 * * *
+
+permissions:
+  contents: write
 
 jobs:
   build:
     name: calibreapp/image-actions
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v6
@@ -24,12 +22,21 @@ jobs:
         uses: calibreapp/image-actions@main
         with:
           compressOnly: true
+          jpegQuality: '85'
+          jpegProgressive: false
+          pngQuality: '90'
+          webpQuality: '85'
+          avifQuality: '75'
 
-      - name: Create New Pull Request If Needed
+      - name: Create Github Summary
         if: steps.calibre.outputs.markdown != ''
-        uses: peter-evans/create-pull-request@v8
-        with:
-          title: Compressed Images
-          branch-suffix: timestamp
-          commit-message: Compressed Images
-          body: ${{ steps.calibre.outputs.markdown }}
+        run: |
+          echo "${{ steps.calibre.outputs.markdown }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Push to github
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "Upload Compressed Images for commit ${{ github.sha }}"
+          git push
